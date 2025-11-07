@@ -20,8 +20,8 @@ This is a **monorepo** containing frontend, backend, and infrastructure code:
 ```
 ai-avater/
 ├── frontend/          # React + Vite application
-├── backend/           # Python Lambda functions (to be implemented)
-├── infrastructure/    # Terraform infrastructure code
+├── backend/           # FastAPI + Mangum Lambda function
+├── infrastructure/    # AWS SAM infrastructure code
 └── document/          # Japanese specification documents
 ```
 
@@ -50,32 +50,49 @@ npx tsc -b
 npx tsc -b --watch
 ```
 
-### Backend Development (To be implemented)
+### Backend Development
 ```bash
 cd backend
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Start local development server (FastAPI with hot reload)
+python local_server.py
+# → http://localhost:8000
+# → http://localhost:8000/docs (Swagger UI)
 
 # Run tests
 pytest
 
-# Run local Lambda test
-./scripts/local_test.sh
-
-# Build Lambda packages
-./scripts/build_lambda.sh
+# Test with SAM CLI (Lambda environment simulation)
+cd ../infrastructure
+sam local start-api
+# → http://localhost:3000
 ```
 
-### Infrastructure Management
+### Infrastructure Management (AWS SAM)
 ```bash
-cd infrastructure/terraform
+cd infrastructure
 
-# Initialize Terraform
-terraform init
+# Build SAM application
+sam build
 
-# Plan changes
-terraform plan
+# Deploy to AWS (guided setup for first time)
+sam deploy --guided
 
-# Apply changes
-terraform apply
+# Deploy with saved configuration
+sam deploy
+
+# Test locally
+sam local start-api
+
+# Invoke specific function
+sam local invoke BackendFunction --event events/chat.json
 ```
 
 ## Architecture
@@ -95,16 +112,18 @@ This is a **monorepo project** with separated frontend, backend, and infrastruct
 
 **Backend** (`backend/` directory):
 - **Runtime**: AWS Lambda with Python 3.12+
-- **Architecture**: Microservices (separate Lambda functions)
-- **AI**: OpenAI API (GPT-4) for dialogue generation
-- **TTS**: Google Cloud TTS for speech synthesis
+- **Framework**: FastAPI + Mangum (ASGI adapter for Lambda)
+- **AI**: AWS Bedrock (Nova Model) for dialogue generation
+- **TTS**: Amazon Polly (Neural TTS) for speech synthesis
 - **Lip-sync**: Rhubarb Lip Sync for phoneme extraction
+- **Local Development**: Uvicorn with hot reload
 
 **Infrastructure** (`infrastructure/` directory):
-- **IaC**: Terraform
+- **IaC**: AWS SAM (Serverless Application Model)
 - **Frontend Hosting**: S3 + CloudFront
-- **Backend**: Lambda + API Gateway
+- **Backend**: API Gateway + Lambda (FastAPI + Mangum)
 - **Storage**: S3 for audio files and assets
+- **Deployment**: `sam build` → `sam deploy`
 
 ### Key Design Decisions
 
@@ -136,16 +155,33 @@ frontend/src/
 └── types/              # TypeScript type definitions
     └── index.ts                     # ✅ Implemented
 
-**Backend Lambda Architecture**:
+**Backend Architecture (FastAPI + Mangum)**:
 ```
 backend/
-├── functions/           # Lambda functions (to be implemented)
-│   ├── chat/           # POST /api/chat - Main dialogue handler
-│   ├── tts/            # Audio synthesis
-│   └── lipsync/        # Phoneme extraction
-├── layers/             # Lambda Layers for shared libraries
-├── shared/             # Shared Python code
-└── tests/              # Backend tests
+├── app/
+│   ├── main.py                      # FastAPI app + Mangum handler
+│   ├── routers/
+│   │   ├── chat.py                  # POST /api/chat endpoint
+│   │   └── health.py                # GET /api/health endpoint
+│   ├── services/
+│   │   ├── ai_service.py            # OpenAI integration
+│   │   ├── tts_service.py           # Google TTS integration
+│   │   └── lipsync_service.py       # Rhubarb Lip Sync
+│   └── models/
+│       └── schemas.py               # Pydantic models
+├── local_server.py                  # Local development server
+├── requirements.txt
+└── tests/                           # Backend tests
+```
+
+**Infrastructure (AWS SAM)**:
+```
+infrastructure/
+├── template.yaml                    # SAM template (CloudFormation)
+├── samconfig.toml                   # SAM CLI configuration
+└── scripts/
+    ├── deploy.sh                    # Deployment script
+    └── local-invoke.sh              # Local testing script
 ```
 
 ### Animation System
@@ -201,10 +237,11 @@ User Input → Frontend Chat UI → Backend API (/api/chat)
 - ✅ Frontend: VRM avatar display components
 - ✅ Frontend: Basic animation controls
 - ✅ Frontend: VRM animation hooks
-- ✅ Infrastructure: Terraform for S3 + CloudFront
+- ✅ Infrastructure: SAM migration plan
 
 **In Progress**:
-- ⏳ Backend: Lambda functions (not started)
+- ⏳ Infrastructure: AWS SAM template implementation
+- ⏳ Backend: FastAPI + Mangum implementation
 - ⏳ Frontend: AI chat integration
 - ⏳ Frontend: Lip-sync system
 - ⏳ Frontend: Emotion controller
@@ -282,6 +319,7 @@ Comprehensive Japanese documentation available in `document/`:
 - `13-テスト要件.md` - Testing requirements
 - `14-デプロイメント.md` - Deployment
 - `15-今後の拡張.md` - Future expansion plans
+- `16-SAM移行計画.md` - AWS SAM migration plan (Terraform → SAM)
 
 ## Environment Setup
 
@@ -292,14 +330,23 @@ VITE_API_URL=http://localhost:8000
 
 ### Backend (backend/.env) - To be implemented
 ```bash
-OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4
-GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json
+# AWS Configuration
+AWS_REGION=ap-northeast-1
+AWS_PROFILE=default
+
+# Bedrock Configuration
+BEDROCK_MODEL_ID=amazon.nova-micro-v1:0
+BEDROCK_REGION=us-east-1
+
+# Polly Configuration
+POLLY_VOICE_ID=Takumi
+POLLY_ENGINE=neural
 ```
 
-### Infrastructure (infrastructure/terraform/terraform.tfvars)
-```hcl
-# See infrastructure/terraform/terraform.tfvars.example
+### Infrastructure (infrastructure/samconfig.toml)
+```toml
+# SAM CLI configuration (auto-generated by `sam deploy --guided`)
+# See infrastructure/samconfig.toml after first deployment
 ```
 
 ## Working with This Monorepo
@@ -307,13 +354,31 @@ GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json
 **General Guidelines**:
 1. Frontend development: Always `cd frontend` first
 2. Backend development: Always `cd backend` first
-3. Infrastructure changes: Always `cd infrastructure/terraform` first
+3. Infrastructure changes: Always `cd infrastructure` first
 4. Each directory has its own dependencies and tooling
-5. Backend directory is currently empty (placeholder for future Lambda functions)
+5. Use `python local_server.py` for fast local backend development
+6. Use `sam local start-api` to test in Lambda-like environment
 
 **File Paths**:
 - Frontend source code: `frontend/src/`
 - Frontend assets: `frontend/public/assets/`
-- Backend functions: `backend/functions/` (to be implemented)
-- Terraform modules: `infrastructure/terraform/`
+- Backend application: `backend/app/`
+- Backend local server: `backend/local_server.py`
+- SAM template: `infrastructure/template.yaml`
 - Documentation: `document/` (root level)
+
+**Local Development Workflow**:
+```bash
+# Terminal 1: Backend (FastAPI with hot reload)
+cd backend
+python local_server.py
+
+# Terminal 2: Frontend (Vite with HMR)
+cd frontend
+npm run dev
+
+# Access:
+# - Frontend: http://localhost:5173
+# - Backend API: http://localhost:8000
+# - API Docs: http://localhost:8000/docs
+```

@@ -1,0 +1,30 @@
+# SAM build artifacts
+.aws-sam/
+samconfig.toml.backup
+
+# Environment variables (contains secrets)
+env.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# SAM local
+.aws-sam-local/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test events
+events/*.local.json

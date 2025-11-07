@@ -1,0 +1,336 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AI Avatar System - Phase 1 Infrastructure
+
+# ==================================================
+# Parameters
+# ==================================================
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+    Description: Environment name (dev or prod)
+
+  BedrockModelId:
+    Type: String
+    Default: amazon.nova-micro-v1:0
+    AllowedValues:
+      - amazon.nova-micro-v1:0
+      - amazon.nova-lite-v1:0
+      - amazon.nova-pro-v1:0
+    Description: AWS Bedrock Nova Model ID
+
+  BedrockRegion:
+    Type: String
+    Default: us-east-1
+    Description: AWS Region where Bedrock is available
+
+  PollyVoiceId:
+    Type: String
+    Default: Takumi
+    AllowedValues:
+      - Takumi    # 日本語男性
+      - Mizuki    # 日本語女性
+      - Kazuha    # 日本語女性 (Neural)
+    Description: Amazon Polly Voice ID for Japanese TTS
+
+# ==================================================
+# Globals
+# ==================================================
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.12
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        POWERTOOLS_SERVICE_NAME: ai-avatar-backend
+        LOG_LEVEL: !If [IsProd, INFO, DEBUG]
+
+  Api:
+    Cors:
+      AllowOrigin: "'*'"
+      AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+      AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+      MaxAge: "'3600'"
+
+# ==================================================
+# Conditions
+# ==================================================
+Conditions:
+  IsProd: !Equals [!Ref Environment, prod]
+  IsDev: !Equals [!Ref Environment, dev]
+
+# ==================================================
+# Resources
+# ==================================================
+Resources:
+  # --------------------------------------------------
+  # S3 Bucket - Frontend Hosting
+  # --------------------------------------------------
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ai-avatar-frontend-${Environment}-${AWS::AccountId}
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+              - '*'
+            AllowedMethods:
+              - GET
+              - HEAD
+            AllowedHeaders:
+              - '*'
+            MaxAge: 3600
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: ai-avatar
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub '${FrontendBucket.Arn}/*'
+
+  # --------------------------------------------------
+  # CloudFront Distribution - CDN
+  # --------------------------------------------------
+  FrontendDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub AI Avatar Frontend - ${Environment}
+        DefaultRootObject: index.html
+        HttpVersion: http2
+        PriceClass: PriceClass_100
+
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+          MinTTL: 0
+          DefaultTTL: 86400
+          MaxTTL: 31536000
+
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 10
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 10
+
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: ai-avatar
+
+  # --------------------------------------------------
+  # API Gateway - REST API
+  # --------------------------------------------------
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub ai-avatar-api-${Environment}
+      StageName: !Ref Environment
+      Cors:
+        AllowOrigin: "'*'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+      TracingEnabled: true
+      Tags:
+        Environment: !Ref Environment
+        Project: ai-avatar
+
+  # --------------------------------------------------
+  # Lambda Function - Backend (FastAPI + Mangum)
+  # --------------------------------------------------
+  BackendFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ai-avatar-backend-${Environment}
+      CodeUri: ../backend/
+      Handler: app.main.handler
+      Description: AI Avatar Backend API (FastAPI + Mangum)
+      Timeout: 30
+      MemorySize: 512
+
+      Environment:
+        Variables:
+          # Bedrock Configuration
+          BEDROCK_MODEL_ID: !Ref BedrockModelId
+          BEDROCK_REGION: !Ref BedrockRegion
+
+          # Polly Configuration
+          POLLY_VOICE_ID: !Ref PollyVoiceId
+          POLLY_ENGINE: neural
+
+          # Application Configuration
+          ENVIRONMENT: !Ref Environment
+          AWS_REGION: !Ref AWS::Region
+
+      Events:
+        # Catch all API requests
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /api/{proxy+}
+            Method: ANY
+
+        # Health check endpoint
+        HealthCheck:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /api/health
+            Method: GET
+
+      Policies:
+        # Bedrock access
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+              Resource:
+                - !Sub arn:aws:bedrock:${BedrockRegion}::foundation-model/${BedrockModelId}
+
+        # Polly access
+        - Statement:
+            - Effect: Allow
+              Action:
+                - polly:SynthesizeSpeech
+                - polly:DescribeVoices
+              Resource: '*'
+
+        # CloudWatch Logs (auto-created by SAM, but explicitly defined for clarity)
+        - Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource:
+                - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-*
+
+      Tags:
+        Environment: !Ref Environment
+        Project: ai-avatar
+
+  # --------------------------------------------------
+  # CloudWatch Log Group - Lambda Logs
+  # --------------------------------------------------
+  BackendFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${BackendFunction}
+      RetentionInDays: !If [IsProd, 30, 7]
+
+# ==================================================
+# Outputs
+# ==================================================
+Outputs:
+  # Frontend URLs
+  FrontendBucketName:
+    Description: S3 Bucket for Frontend
+    Value: !Ref FrontendBucket
+    Export:
+      Name: !Sub ${AWS::StackName}-FrontendBucket
+
+  FrontendBucketWebsiteUrl:
+    Description: S3 Website URL
+    Value: !GetAtt FrontendBucket.WebsiteURL
+    Export:
+      Name: !Sub ${AWS::StackName}-FrontendWebsiteUrl
+
+  CloudFrontUrl:
+    Description: CloudFront Distribution URL
+    Value: !GetAtt FrontendDistribution.DomainName
+    Export:
+      Name: !Sub ${AWS::StackName}-CloudFrontUrl
+
+  CloudFrontDistributionId:
+    Description: CloudFront Distribution ID
+    Value: !Ref FrontendDistribution
+    Export:
+      Name: !Sub ${AWS::StackName}-CloudFrontDistributionId
+
+  # Backend API URLs
+  ApiUrl:
+    Description: API Gateway URL
+    Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/
+    Export:
+      Name: !Sub ${AWS::StackName}-ApiUrl
+
+  ApiGatewayId:
+    Description: API Gateway ID
+    Value: !Ref ApiGateway
+    Export:
+      Name: !Sub ${AWS::StackName}-ApiGatewayId
+
+  # Lambda Function
+  BackendFunctionArn:
+    Description: Backend Lambda Function ARN
+    Value: !GetAtt BackendFunction.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-BackendFunctionArn
+
+  BackendFunctionName:
+    Description: Backend Lambda Function Name
+    Value: !Ref BackendFunction
+    Export:
+      Name: !Sub ${AWS::StackName}-BackendFunctionName
+
+  # Complete Frontend URL
+  FrontendUrl:
+    Description: Complete Frontend URL (use this for access)
+    Value: !Sub https://${FrontendDistribution.DomainName}
+
+  # Complete API URL
+  CompleteApiUrl:
+    Description: Complete API URL (use this for frontend .env)
+    Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}

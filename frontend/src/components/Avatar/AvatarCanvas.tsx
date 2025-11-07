@@ -5,11 +5,13 @@ import type { AvatarCanvasProps } from '../../types';
 import VRMAvatar from './VRMAvatar';
 import ExpressionControls from './ExpressionControls';
 import AnimationControls from './AnimationControls';
+import { ChatInterface } from '../Chat/ChatInterface';
 import { useVRMAnimation } from '../../hooks/useVRMAnimation';
 import { useVRMAnimationPlayer } from '../../hooks/useVRMAnimationPlayer';
 import type { AnimationInfo } from '../../hooks/useVRMAnimationPlayer';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type { VRM, VRMExpressionPresetName } from '@pixiv/three-vrm';
+import type { ChatResponse } from '../../types/api';
 
 // カメラリセット機能を持つコンポーネント
 const CameraController = () => {
@@ -51,7 +53,7 @@ const AvatarCanvas = ({ modelUrl, className = '' }: AvatarCanvasProps) => {
   const [vrm, setVrm] = useState<VRM | null>(null);
   const [currentExpression, setCurrentExpression] = useState<VRMExpressionPresetName | 'neutral'>('neutral');
 
-  const vrmUrl = modelUrl || '/assets/models/avatar.vrm';
+  const vrmUrl = modelUrl || 'public/assets/models/avatar.vrm';
 
   // アニメーションフックを使用
   const { setExpression, setIdleEnabled } = useVRMAnimation(vrm);
@@ -114,6 +116,28 @@ const AvatarCanvas = ({ modelUrl, className = '' }: AvatarCanvasProps) => {
     setExpression(expression);
   };
 
+  // チャットレスポンス受信時のハンドラー
+  const handleChatResponse = (response: ChatResponse) => {
+    console.log('Chat response received:', response);
+
+    // 感情に基づいて表情を変更
+    const emotionMap: { [key: string]: VRMExpressionPresetName } = {
+      happy: 'happy',
+      sad: 'sad',
+      angry: 'angry',
+      surprised: 'surprised',
+      relaxed: 'relaxed',
+    };
+
+    const expression = emotionMap[response.emotion];
+    // if (expression) {
+    //   handleExpressionChange(expression);
+    // }
+
+    // TODO: 将来的には音声再生とリップシンクを実装
+    // TODO: キーワードに基づいてジェスチャーアニメーションをトリガー
+  };
+
   // キーボードショートカット
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -138,6 +162,7 @@ const AvatarCanvas = ({ modelUrl, className = '' }: AvatarCanvasProps) => {
 
   return (
     <div className={`relative w-full h-full flex-1 ${className}`}>
+      {/* 3D Canvas */}
       <Canvas
         camera={{ position: [0, 1.3, 2], fov: 30, near: 0.1, far: 20 }}
         gl={{ antialias: true, alpha: true }}
@@ -168,6 +193,11 @@ const AvatarCanvas = ({ modelUrl, className = '' }: AvatarCanvasProps) => {
           <p className="m-0 text-base">{error}</p>
         </div>
       )}
+
+      {/* Chat Interface - Left Side */}
+      <div className="absolute top-4 left-4 bottom-20 w-96 z-[1000]">
+        <ChatInterface onResponseReceived={handleChatResponse} />
+      </div>
 
       <ExpressionControls
         onExpressionChange={handleExpressionChange}

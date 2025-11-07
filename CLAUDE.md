@@ -13,10 +13,24 @@ This is an **AI Avatar System (Phase 1)** - a React application that displays a 
 - Emotion expressions
 - Idle motion animations
 
+## Project Structure
+
+This is a **monorepo** containing frontend, backend, and infrastructure code:
+
+```
+ai-avater/
+├── frontend/          # React + Vite application
+├── backend/           # Python Lambda functions (to be implemented)
+├── infrastructure/    # Terraform infrastructure code
+└── document/          # Japanese specification documents
+```
+
 ## Commands
 
-### Development
+### Frontend Development
 ```bash
+cd frontend
+
 # Start development server
 npm run dev
 
@@ -28,37 +42,69 @@ npm run lint
 
 # Preview production build
 npm run preview
-```
 
-### TypeScript
-```bash
 # Type check
-tsc -b
+npx tsc -b
 
 # Type check with watch mode
-tsc -b --watch
+npx tsc -b --watch
+```
+
+### Backend Development (To be implemented)
+```bash
+cd backend
+
+# Run tests
+pytest
+
+# Run local Lambda test
+./scripts/local_test.sh
+
+# Build Lambda packages
+./scripts/build_lambda.sh
+```
+
+### Infrastructure Management
+```bash
+cd infrastructure/terraform
+
+# Initialize Terraform
+terraform init
+
+# Plan changes
+terraform plan
+
+# Apply changes
+terraform apply
 ```
 
 ## Architecture
 
 ### System Architecture (Phase 1)
 
-This is a **separated frontend-only project** (currently in initial setup). The full system will have:
+This is a **monorepo project** with separated frontend, backend, and infrastructure:
 
-**Frontend (This Repository)**:
-- **Build Tool**: Vite 5.x (chosen for fast HMR, excellent Three.js compatibility)
+**Frontend** (`frontend/` directory):
+- **Build Tool**: Vite 7.x (chosen for fast HMR, excellent Three.js compatibility)
 - **Framework**: React 19.x with TypeScript 5.x
 - **Styling**: Tailwind CSS 4.x
 - **3D Rendering**: Three.js + @pixiv/three-vrm for VRM avatar support
-- **Animation**: GSAP for smooth animations
+- **Animation**: GSAP for smooth animations (planned)
 - **State Management**: Zustand (planned)
 - **API Communication**: Axios (planned)
 
-**Backend (Separate)**:
-- FastAPI with Python 3.12+
-- OpenAI API (GPT-4) for dialogue generation
-- Google Cloud TTS for speech synthesis
-- Rhubarb Lip Sync for phoneme extraction
+**Backend** (`backend/` directory):
+- **Runtime**: AWS Lambda with Python 3.12+
+- **Architecture**: Microservices (separate Lambda functions)
+- **AI**: OpenAI API (GPT-4) for dialogue generation
+- **TTS**: Google Cloud TTS for speech synthesis
+- **Lip-sync**: Rhubarb Lip Sync for phoneme extraction
+
+**Infrastructure** (`infrastructure/` directory):
+- **IaC**: Terraform
+- **Frontend Hosting**: S3 + CloudFront
+- **Backend**: Lambda + API Gateway
+- **Storage**: S3 for audio files and assets
 
 ### Key Design Decisions
 
@@ -68,23 +114,38 @@ This is a **separated frontend-only project** (currently in initial setup). The 
 - Excellent Three.js ecosystem compatibility
 - Clean separation between frontend and backend services
 
-**Component Architecture** (Planned):
+**Frontend Component Architecture**:
 ```
-src/
+frontend/src/
 ├── components/
 │   ├── Avatar/          # 3D avatar rendering and control
-│   │   ├── AvatarCanvas.tsx
-│   │   ├── AvatarController.ts
-│   │   ├── AnimationManager.ts      # Animation priority system
-│   │   ├── LipSyncController.ts     # Mouth movement sync
-│   │   ├── EmotionController.ts     # Facial expressions
-│   │   └── IdleMotionController.ts  # Background animations
-│   ├── Chat/            # Chat UI components
-│   └── UI/              # Shared UI components
+│   │   ├── AvatarCanvas.tsx         # ✅ Implemented
+│   │   ├── VRMAvatar.tsx            # ✅ Implemented
+│   │   ├── AnimationControls.tsx    # ✅ Implemented
+│   │   ├── ExpressionControls.tsx   # ✅ Implemented
+│   │   ├── AnimationManager.ts      # Animation priority system (planned)
+│   │   ├── LipSyncController.ts     # Mouth movement sync (planned)
+│   │   └── EmotionController.ts     # Facial expressions (planned)
+│   ├── Chat/            # Chat UI components (planned)
+│   └── UI/              # Shared UI components (planned)
 ├── hooks/               # Custom React hooks
-├── services/            # API and audio services
-├── utils/              # Helper functions
+│   ├── useVRMAnimation.ts           # ✅ Implemented
+│   └── useVRMAnimationPlayer.ts     # ✅ Implemented
+├── services/            # API and audio services (planned)
+├── utils/              # Helper functions (planned)
 └── types/              # TypeScript type definitions
+    └── index.ts                     # ✅ Implemented
+
+**Backend Lambda Architecture**:
+```
+backend/
+├── functions/           # Lambda functions (to be implemented)
+│   ├── chat/           # POST /api/chat - Main dialogue handler
+│   ├── tts/            # Audio synthesis
+│   └── lipsync/        # Phoneme extraction
+├── layers/             # Lambda Layers for shared libraries
+├── shared/             # Shared Python code
+└── tests/              # Backend tests
 ```
 
 ### Animation System
@@ -96,7 +157,7 @@ The animation system uses a **priority-based hierarchy**:
 3. **Emotion Expressions** (Priority 3) - Facial BlendShapes for emotions
 4. **Idle Motions** (Priority 4) - Subtle background movements (breathing, blinking, looking around)
 
-**Animation Files** (located in `public/assets/animations/`):
+**Animation Files** (located in `frontend/public/assets/animations/`):
 - `gestures/`: greeting.glb, pointing.glb, nodding.glb, thinking.glb, explaining.glb, celebrating.glb, shrugging.glb, agreeing.glb
 - `idle/`: breathing.glb, blink.glb, lookAround.glb, stretch.glb, adjustClothes.glb, idleShift.glb
 
@@ -132,9 +193,23 @@ User Input → Frontend Chat UI → Backend API (/api/chat)
 
 ## Current State
 
-**Status**: Initial Vite + React + TypeScript setup
-- Default Vite React template in place
-- No custom components implemented yet
+**Status**: Monorepo structure established, Frontend components partially implemented
+
+**Completed**:
+- ✅ Monorepo structure (frontend/, backend/, infrastructure/)
+- ✅ Frontend: Vite + React + TypeScript + Tailwind CSS
+- ✅ Frontend: VRM avatar display components
+- ✅ Frontend: Basic animation controls
+- ✅ Frontend: VRM animation hooks
+- ✅ Infrastructure: Terraform for S3 + CloudFront
+
+**In Progress**:
+- ⏳ Backend: Lambda functions (not started)
+- ⏳ Frontend: AI chat integration
+- ⏳ Frontend: Lip-sync system
+- ⏳ Frontend: Emotion controller
+
+**Documentation**:
 - Comprehensive specification documents in `document/` folder (Japanese)
 
 ## Phase 1 Constraints
@@ -157,7 +232,7 @@ User Input → Frontend Chat UI → Backend API (/api/chat)
 ### VRM Model Requirements
 - Use VRM 1.0 or compatible format
 - Must support BlendShapes for facial expressions
-- Place in `public/assets/models/avatar.vrm`
+- Place in `frontend/public/assets/models/avatar.vrm`
 
 ### Animation Integration
 - Use GLB format for animation clips
@@ -210,14 +285,35 @@ Comprehensive Japanese documentation available in `document/`:
 
 ## Environment Setup
 
-### Frontend (.env)
+### Frontend (frontend/.env)
 ```bash
 VITE_API_URL=http://localhost:8000
 ```
 
-### Backend (.env) - For Reference
+### Backend (backend/.env) - To be implemented
 ```bash
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-4
 GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json
 ```
+
+### Infrastructure (infrastructure/terraform/terraform.tfvars)
+```hcl
+# See infrastructure/terraform/terraform.tfvars.example
+```
+
+## Working with This Monorepo
+
+**General Guidelines**:
+1. Frontend development: Always `cd frontend` first
+2. Backend development: Always `cd backend` first
+3. Infrastructure changes: Always `cd infrastructure/terraform` first
+4. Each directory has its own dependencies and tooling
+5. Backend directory is currently empty (placeholder for future Lambda functions)
+
+**File Paths**:
+- Frontend source code: `frontend/src/`
+- Frontend assets: `frontend/public/assets/`
+- Backend functions: `backend/functions/` (to be implemented)
+- Terraform modules: `infrastructure/terraform/`
+- Documentation: `document/` (root level)

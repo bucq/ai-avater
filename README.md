@@ -1,73 +1,100 @@
-# React + TypeScript + Vite
+# AI Avatar System (Phase 1)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+AI-powered 3D avatar system with natural dialogue, lip-sync, and emotional expressions.
 
-Currently, two official plugins are available:
+## Project Overview
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+This is an AI Avatar application that displays a 3D VRM avatar responding to AI conversations with:
+- 3D VRM avatar display and animation
+- AI chat functionality (OpenAI GPT-4)
+- Lip-sync with speech
+- Emotion expressions
+- Idle motion animations
 
-## React Compiler
+## Project Structure
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+ai-avater/
+├── frontend/          # React + Vite frontend application
+├── backend/           # Python Lambda functions (to be implemented)
+├── infrastructure/    # Terraform infrastructure code
+└── document/          # Japanese specification documents
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Quick Start
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Frontend Development
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+cd frontend
+npm install
+npm run dev
 ```
+
+The development server will start at [http://localhost:5173](http://localhost:5173)
+
+### Available Commands (Frontend)
+
+```bash
+npm run dev      # Start development server
+npm run build    # Build for production
+npm run lint     # Run ESLint
+npm run preview  # Preview production build
+```
+
+## Technology Stack
+
+### Frontend
+- **Framework**: React 19.x with TypeScript 5.x
+- **Build Tool**: Vite 7.x
+- **Styling**: Tailwind CSS 4.x
+- **3D Rendering**: Three.js + @pixiv/three-vrm
+- **Animation**: GSAP (planned)
+
+### Backend (To be implemented)
+- **Runtime**: AWS Lambda with Python 3.12+
+- **AI**: OpenAI GPT-4
+- **TTS**: Google Cloud Text-to-Speech
+- **Lip-sync**: Rhubarb Lip Sync
+
+### Infrastructure
+- **Cloud**: AWS
+- **IaC**: Terraform
+- **Frontend Hosting**: S3 + CloudFront
+- **Backend**: Lambda + API Gateway (planned)
+
+## Documentation
+
+Comprehensive documentation is available in the [document/](document/) directory (Japanese):
+- [00-INDEX.md](document/00-INDEX.md) - Documentation index
+- [01-プロジェクト概要.md](document/01-プロジェクト概要.md) - Project overview
+- [02-システム構成.md](document/02-システム構成.md) - System architecture
+- And more...
+
+See [CLAUDE.md](CLAUDE.md) for detailed development guidelines.
+
+## Development Status
+
+**Current Phase**: Phase 1 - Initial Setup
+- ✅ Frontend structure setup
+- ✅ VRM avatar display components
+- ✅ Basic animation controls
+- ⏳ Backend Lambda functions (planned)
+- ⏳ AI chat integration (planned)
+
+## Deployment
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for deployment instructions.
+
+## Browser Compatibility
+
+- Chrome 100+
+- Firefox 100+
+- Safari 15+
+- Edge 100+
+
+Requires: WebGL 2.0, ES2020+, Web Audio API
+
+## License
+
+Private project

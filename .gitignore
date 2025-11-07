@@ -1,24 +1,23 @@
-# Logs
-logs
+# Root level ignores
+.DS_Store
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-*.local
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Each subdirectory has its own .gitignore
+# frontend/.gitignore - for node_modules, dist, etc.
+# backend/.gitignore - for Python specific ignores
+# infrastructure/.gitignore - for Terraform specific ignores

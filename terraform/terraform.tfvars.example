@@ -1,0 +1,23 @@
+# AWS設定
+aws_region = "ap-northeast-1"
+
+# プロジェクト設定
+project_name = "ai-avatar"
+environment  = "production"
+
+# S3バケット名（グローバルで一意である必要があります）
+bucket_name = "ai-avatar-app-unique-name"
+
+# CloudFront設定
+enable_cloudfront = true
+
+# カスタムドメイン（オプション）
+# domain_name = "avatar.example.com"
+# acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/xxxxx"
+
+# タグ
+tags = {
+  Project     = "AI Avatar System"
+  ManagedBy   = "Terraform"
+  Environment = "production"
+}

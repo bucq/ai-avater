@@ -47,14 +47,15 @@ This is a **separated frontend-only project** (currently in initial setup). The 
 
 **Frontend (This Repository)**:
 - **Build Tool**: Vite 5.x (chosen for fast HMR, excellent Three.js compatibility)
-- **Framework**: React 18.x with TypeScript 5.x
+- **Framework**: React 19.x with TypeScript 5.x
+- **Styling**: Tailwind CSS 4.x
 - **3D Rendering**: Three.js + @pixiv/three-vrm for VRM avatar support
 - **Animation**: GSAP for smooth animations
 - **State Management**: Zustand (planned)
 - **API Communication**: Axios (planned)
 
 **Backend (Separate)**:
-- FastAPI with Python 3.11+
+- FastAPI with Python 3.12+
 - OpenAI API (GPT-4) for dialogue generation
 - Google Cloud TTS for speech synthesis
 - Rhubarb Lip Sync for phoneme extraction

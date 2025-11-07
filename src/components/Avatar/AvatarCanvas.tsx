@@ -137,13 +137,14 @@ const AvatarCanvas = ({ modelUrl, className = '' }: AvatarCanvasProps) => {
   }, [setExpression]);
 
   return (
-    <div className={`avatar-canvas-container ${className}`} style={{ width: '100%', height: '100vh' }}>
+    <div className={`relative w-full h-full flex-1 ${className}`}>
       <Canvas
         camera={{ position: [0, 1.3, 2], fov: 30, near: 0.1, far: 20 }}
         gl={{ antialias: true, alpha: true }}
         onCreated={({ gl }) => {
           gl.outputColorSpace = 'srgb';
         }}
+        className="block w-full h-full"
       >
         <color attach="background" args={['#f0f0f0']} />
 
@@ -163,18 +164,8 @@ const AvatarCanvas = ({ modelUrl, className = '' }: AvatarCanvasProps) => {
       </Canvas>
 
       {error && (
-        <div className="error-message" style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          background: 'rgba(255, 0, 0, 0.8)',
-          color: 'white',
-          padding: '20px',
-          borderRadius: '8px',
-          zIndex: 1000
-        }}>
-          <p>{error}</p>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-red-600/90 text-white px-8 py-6 rounded-lg z-[1000] max-w-[80%] text-center">
+          <p className="m-0 text-base">{error}</p>
         </div>
       )}
 
@@ -191,19 +182,9 @@ const AvatarCanvas = ({ modelUrl, className = '' }: AvatarCanvasProps) => {
         onStop={stopAnimation}
       />
 
-      <div className="controls-hint" style={{
-        position: 'absolute',
-        bottom: '20px',
-        left: '20px',
-        background: 'rgba(0, 0, 0, 0.6)',
-        color: 'white',
-        padding: '10px 15px',
-        borderRadius: '5px',
-        fontSize: '14px',
-        zIndex: 1000
-      }}>
-        <p style={{ margin: 0 }}>カメラ操作: マウスドラッグ</p>
-        <p style={{ margin: '5px 0 0 0' }}>リセット: <strong>R</strong>キー</p>
+      <div className="absolute bottom-5 left-5 bg-black/60 text-white px-4 py-2.5 rounded text-sm z-[1000]">
+        <p className="m-0">カメラ操作: マウスドラッグ</p>
+        <p className="mt-1 mb-0">リセット: <strong>R</strong>キー</p>
       </div>
     </div>
   );

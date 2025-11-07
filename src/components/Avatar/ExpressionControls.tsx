@@ -16,55 +16,32 @@ const ExpressionControls = ({ onExpressionChange, currentExpression }: Expressio
   ];
 
   return (
-    <div style={{
-      position: 'absolute',
-      top: '20px',
-      right: '20px',
-      background: 'rgba(0, 0, 0, 0.7)',
-      padding: '15px',
-      borderRadius: '8px',
-      color: 'white',
-      zIndex: 1000,
-      minWidth: '200px'
-    }}>
-      <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>表情</h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {expressions.map(({ name, label, emoji }) => (
-          <button
-            key={name}
-            onClick={() => onExpressionChange(name)}
-            style={{
-              padding: '4px',
-              background: currentExpression === name ? '#4CAF50' : '#333',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              fontSize: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              transition: 'background 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              if (currentExpression !== name) {
-                e.currentTarget.style.background = '#555';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (currentExpression !== name) {
-                e.currentTarget.style.background = '#333';
-              }
-            }}
-          >
-            <span style={{ fontSize: '15px' }}>{emoji}</span>
-            <span>{label}</span>
-          </button>
-        ))}
+    <div className="absolute top-5 right-5 bg-black/70 p-4 rounded-lg text-white z-[1000] min-w-[200px]">
+      <h3 className="m-0 mb-2.5 text-base">表情</h3>
+      <div className="flex flex-col gap-2">
+        {expressions.map(({ name, label, emoji }) => {
+          const isActive = currentExpression === name;
+
+          return (
+            <button
+              key={name}
+              onClick={() => onExpressionChange(name)}
+              className={`
+                p-1 border-none rounded-md cursor-pointer text-xs
+                flex items-center gap-1 transition-colors
+                ${isActive ? 'bg-green-500' : 'bg-[#333] hover:bg-[#555]'}
+                text-white
+              `}
+            >
+              <span className="text-[15px]">{emoji}</span>
+              <span>{label}</span>
+            </button>
+          );
+        })}
       </div>
-      <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid #555', fontSize: '12px', color: '#aaa' }}>
-        <p style={{ margin: 0 }}>キーボードショートカット:</p>
-        <p style={{ margin: '5px 0 0 0' }}>1-6: 表情切り替え</p>
+      <div className="mt-4 pt-4 border-t border-[#555] text-xs text-[#aaa]">
+        <p className="m-0">キーボードショートカット:</p>
+        <p className="mt-1 mb-0">1-6: 表情切り替え</p>
       </div>
     </div>
   );

@@ -16,95 +16,48 @@ const AnimationControls = ({
   onStop,
 }: AnimationControlsProps) => {
   return (
-    <div
-      style={{
-        position: 'absolute',
-        bottom: '20px',
-        right: '20px',
-        background: 'rgba(0, 0, 0, 0.7)',
-        padding: '15px',
-        borderRadius: '8px',
-        color: 'white',
-        zIndex: 1000,
-        minWidth: '250px',
-        maxWidth: '300px',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-        <h3 style={{ margin: 0, fontSize: '16px' }}>ジェスチャー</h3>
+    <div className="absolute bottom-5 right-5 bg-black/70 p-4 rounded-lg text-white z-[1000] min-w-[250px] max-w-[300px]">
+      <div className="flex justify-between items-center mb-2.5">
+        <h3 className="m-0 text-base">ジェスチャー</h3>
         {isPlaying && (
           <button
             onClick={onStop}
-            style={{
-              padding: '5px 10px',
-              background: '#f44336',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '12px',
-            }}
+            className="px-2.5 py-1 bg-red-500 text-white border-none rounded cursor-pointer text-xs hover:bg-red-600 transition-colors"
           >
             停止
           </button>
         )}
       </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: '8px',
-          marginBottom: '10px',
-        }}
-      >
-        {animations.map((animation) => (
-          <button
-            key={animation.id}
-            onClick={() => onAnimationSelect(animation.id)}
-            disabled={isPlaying && currentAnimation === animation.id}
-            style={{
-              padding: '12px 8px',
-              background:
-                currentAnimation === animation.id && isPlaying
-                  ? '#4CAF50'
-                  : '#333',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: isPlaying && currentAnimation === animation.id ? 'not-allowed' : 'pointer',
-              fontSize: '10px',
-              transition: 'background 0.2s',
-              opacity: isPlaying && currentAnimation === animation.id ? 0.7 : 1,
-            }}
-            onMouseEnter={(e) => {
-              if (!(isPlaying && currentAnimation === animation.id)) {
-                e.currentTarget.style.background = '#555';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!(isPlaying && currentAnimation === animation.id)) {
-                e.currentTarget.style.background = '#333';
-              }
-            }}
-          >
-            {animation.name}
-            {currentAnimation === animation.id && isPlaying && (
-              <span style={{ marginLeft: '5px' }}>▶</span>
-            )}
-          </button>
-        ))}
+      <div className="grid grid-cols-2 gap-2 mb-2.5">
+        {animations.map((animation) => {
+          const isCurrentlyPlaying = isPlaying && currentAnimation === animation.id;
+
+          return (
+            <button
+              key={animation.id}
+              onClick={() => onAnimationSelect(animation.id)}
+              disabled={isCurrentlyPlaying}
+              className={`
+                py-3 px-2 border-none rounded-md text-[10px] transition-all
+                ${isCurrentlyPlaying
+                  ? 'bg-green-500 cursor-not-allowed opacity-70'
+                  : 'bg-[#333] cursor-pointer hover:bg-[#555]'
+                }
+                text-white
+              `}
+            >
+              {animation.name}
+              {isCurrentlyPlaying && (
+                <span className="ml-1">▶</span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      <div
-        style={{
-          paddingTop: '10px',
-          borderTop: '1px solid #555',
-          fontSize: '11px',
-          color: '#aaa',
-        }}
-      >
-        <p style={{ margin: 0 }}>
+      <div className="pt-2.5 border-t border-[#555] text-[11px] text-[#aaa]">
+        <p className="m-0">
           {isPlaying ? '再生中...' : 'ジェスチャーを選択してください'}
         </p>
       </div>

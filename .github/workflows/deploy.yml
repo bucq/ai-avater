@@ -23,15 +23,19 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
 
       - name: Install dependencies
+        working-directory: ./frontend
         run: npm ci
 
       - name: Run type check
-        run: npm run build -- --mode production
+        working-directory: ./frontend
+        run: npx tsc --noEmit
         continue-on-error: false
 
       - name: Build project
+        working-directory: ./frontend
         run: npm run build
         env:
           NODE_ENV: production
@@ -46,20 +50,20 @@ jobs:
       - name: Sync files to S3
         run: |
           # アセットファイルを長期キャッシュで同期
-          aws s3 sync dist/assets/ s3://${{ secrets.S3_BUCKET_NAME }}/assets/ \
+          aws s3 sync frontend/dist/assets/ s3://${{ secrets.S3_BUCKET_NAME }}/assets/ \
             --delete \
             --cache-control "public, max-age=31536000, immutable" \
             --metadata-directive REPLACE
 
           # その他のファイルを同期（index.htmlを除く）
-          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }}/ \
+          aws s3 sync frontend/dist/ s3://${{ secrets.S3_BUCKET_NAME }}/ \
             --delete \
             --exclude "index.html" \
             --exclude "assets/*" \
             --cache-control "public, max-age=3600"
 
           # index.htmlを最後にアップロード（キャッシュなし）
-          aws s3 cp dist/index.html s3://${{ secrets.S3_BUCKET_NAME }}/index.html \
+          aws s3 cp frontend/dist/index.html s3://${{ secrets.S3_BUCKET_NAME }}/index.html \
             --cache-control "no-cache, no-store, must-revalidate" \
             --metadata-directive REPLACE
 

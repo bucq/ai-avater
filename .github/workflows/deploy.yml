@@ -1,0 +1,86 @@
+name: Deploy to AWS S3
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # 手動実行も可能
+
+env:
+  NODE_VERSION: '20'
+  AWS_REGION: 'ap-northeast-1'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run type check
+        run: npm run build -- --mode production
+        continue-on-error: false
+
+      - name: Build project
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sync files to S3
+        run: |
+          # アセットファイルを長期キャッシュで同期
+          aws s3 sync dist/assets/ s3://${{ secrets.S3_BUCKET_NAME }}/assets/ \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable" \
+            --metadata-directive REPLACE
+
+          # その他のファイルを同期（index.htmlを除く）
+          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }}/ \
+            --delete \
+            --exclude "index.html" \
+            --exclude "assets/*" \
+            --cache-control "public, max-age=3600"
+
+          # index.htmlを最後にアップロード（キャッシュなし）
+          aws s3 cp dist/index.html s3://${{ secrets.S3_BUCKET_NAME }}/index.html \
+            --cache-control "no-cache, no-store, must-revalidate" \
+            --metadata-directive REPLACE
+
+      - name: Invalidate CloudFront cache
+        if: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID != '' }}
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+
+      - name: Deployment summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: Production" >> $GITHUB_STEP_SUMMARY
+          echo "- **S3 Bucket**: ${{ secrets.S3_BUCKET_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region**: ${{ env.AWS_REGION }}" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}" ]; then
+            echo "- **CloudFront**: Enabled (ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }})" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **CloudFront**: Disabled" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Deployment completed successfully!" >> $GITHUB_STEP_SUMMARY

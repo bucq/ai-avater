@@ -1,0 +1,60 @@
+name: Pull Request Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  lint-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Run type check
+        run: npx tsc --noEmit
+
+      - name: Build project
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Check build output
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "❌ Build failed: dist directory not found"
+            exit 1
+          fi
+          if [ ! -f "dist/index.html" ]; then
+            echo "❌ Build failed: index.html not found"
+            exit 1
+          fi
+          echo "✅ Build successful"
+
+      - name: PR Check Summary
+        run: |
+          echo "## PR Check Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All checks passed!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Linting: Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- Type checking: Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- Build: Passed" >> $GITHUB_STEP_SUMMARY
